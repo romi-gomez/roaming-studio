@@ -1,15 +1,14 @@
-import Gallery from "../components/Gallery";
 import Head from "next/head";
 
-const Home = () => {
+const About = () => {
   return (
     <>
       <Head>
         <title>Romi Gomez | Creative coding portfolio</title>
       </Head>
-      <Gallery />
+      <h1>ABOUT</h1>
     </>
   );
 };
 
-export default Home;
+export default About;
