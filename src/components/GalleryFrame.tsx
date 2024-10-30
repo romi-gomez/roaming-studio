@@ -1,10 +1,11 @@
-import style from '@/styles/GalleryFrame.module.css';
 import SketchComponent from './SketchComponent';
 
-const GalleryFrame = (props:any) => {
+const GalleryFrame = (props: any) => {
   return (
-    <section className = {style.galleryFrame}>
-      <SketchComponent setup={props.setup} draw={props.draw}/>
+    <section className="w-[200px] h-[320px] bg-white shadow-lg rounded-md flex items-center justify-center overflow-hidden">
+      <div className="w-full h-full">
+        <SketchComponent setup={props.setup} draw={props.draw} />
+      </div>
     </section>
   );
 };
