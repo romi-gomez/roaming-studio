@@ -27,6 +27,9 @@ importers:
       '@types/node':
         specifier: 22.8.4
         version: 22.8.4
+      '@types/p5':
+        specifier: ^1.7.6
+        version: 1.7.6
       '@types/react':
         specifier: 18.3.12
         version: 18.3.12
@@ -338,6 +341,9 @@ packages:
 
   '@types/p5@1.7.0':
     resolution: {integrity: sha512-6AnjmW98/edgXB+pYDBx7t6QbCogIG6NUzey93JpGTZA4096C+KjSN8y0sj43QRd9XtblrAhoRXHj1pFZ2vsCg==}
+
+  '@types/p5@1.7.6':
+    resolution: {integrity: sha512-6pLTOo0V3N5jZb5nTwjiv3lPHLK3Z/TjbhQUj8CTWXocUk1Z/f6OHTp3Pcwi1BhWnf5gqKUcyEb1gP0KIJuQgw==}
 
   '@types/prop-types@15.7.13':
     resolution: {integrity: sha512-hCZTSvwbzWGvhqxp/RqVqwU999pBf2vp7hzIjiYOsl8wqOmUxkQ6ddw1cV3l8811+kdUFus/q4d1Y3E3SyEifA==}
@@ -1918,6 +1924,8 @@ snapshots:
       undici-types: 6.19.8
 
   '@types/p5@1.7.0': {}
+
+  '@types/p5@1.7.6': {}
 
   '@types/prop-types@15.7.13': {}
 
