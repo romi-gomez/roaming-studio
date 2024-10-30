@@ -1,4 +1,4 @@
-import Gallery from "../components/Gallery";
+import Gallery from "@/components/Gallery";
 import Head from "next/head";
 
 const Home = () => {

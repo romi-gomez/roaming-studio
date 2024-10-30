@@ -1,4 +1,4 @@
-import style from '../styles/GalleryFrame.module.css';
+import style from '@/styles/GalleryFrame.module.css';
 import SketchComponent from './SketchComponent';
 
 const GalleryFrame = (props:any) => {
