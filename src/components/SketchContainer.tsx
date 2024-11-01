@@ -6,8 +6,7 @@ import React, { useEffect, useRef, useState } from "react";
 import p5 from "p5";
 
 // Define the type for the sketch function, specifying the types of its arguments
-// We use 'InstanceType<typeof p5>' instead of 'p5' directly because 'p5' cannot be used as a type.
-// This approach resolves the TypeScript error where 'p5' cannot be used as a value or type.
+   
 // 'InstanceType<typeof p5>' correctly infers the instance type of p5.
 type Sketch = (p: InstanceType<typeof p5>, parentRef: HTMLDivElement) => void;
 
@@ -25,6 +24,7 @@ export const SketchContainer: React.FC<{ sketch: Sketch }> = ({ sketch }) => {
     if (!isMounted || !parentRef.current) return;
     
     let p5instance: InstanceType<typeof p5>;
+    
     const initP5 = async () => {
       // Dynamically import p5 to avoid server-side rendering issues
       const p5Module = (await import("p5")).default;
