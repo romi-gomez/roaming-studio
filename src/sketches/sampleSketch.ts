@@ -19,7 +19,7 @@ export const sampleSketch = (
   // Variables for the centipede animation
   let spinePoints: P5Vector[] = []; // Array to store the positions of the centipede's body segments
   const numSegments = 3000; // Number of segments to control the length of the centipede
-  const segmentLength = 40; // Length of the central segment of each leg
+  const segmentLength = 30; // Length of the central segment of each leg
   let direction: P5Vector = { // Current direction of the centipede
     x: 1,
     y: 1,
@@ -40,8 +40,8 @@ export const sampleSketch = (
       };
     }
   };
-  const speed = 0.8; // Speed of the centipede's movement
-  let angleOffset = -0.005; // Angle offset used for oscillating movement of the centipede
+  const speed = 0.6; // Speed of the centipede's movement
+  let angleOffset = 0.005; // Angle offset used for oscillating movement of the centipede
   let resizeObserver: ResizeObserver;
 
   // Initialize the canvas with correct dimensions
@@ -109,9 +109,9 @@ export const sampleSketch = (
     const head = spinePoints[0]; // Get the current head position of the centipede
 
     // Calculate new direction based on oscillation, making an infinity shape
-    angleOffset += 0.0009; // Controls how fast the centipede oscillates to create a looping path
-    const offsetX = Math.sin(angleOffset) * (p.width * 0.8); // Determine how much to oscillate in the X-axis
-    const offsetY = Math.cos(2 * angleOffset) * (p.height * 0.8); // Determine how much to oscillate in the Y-axis
+    angleOffset += 0.0005; // Controls how fast the centipede oscillates to create a looping path
+    const offsetX = Math.sin(1 * p.PI *angleOffset) * (p.width * 0.8 *speed); // Determine how much to oscillate in the X-axis
+    const offsetY = Math.cos(0.5 * p.PI * angleOffset) * (p.height * 0.9 * speed); // Determine how much to oscillate in the Y-axis
 
     // Update direction vector with oscillation
     direction.x += offsetX; // Add oscillation to X direction to create dynamic movement
@@ -125,7 +125,7 @@ export const sampleSketch = (
     ) as P5Vector;
 
     // Check for boundary and adjust direction smoothly when approaching canvas limits
-    const margin = 50; // Margin from edge to trigger a direction change
+    const margin = 100; // Margin from edge to trigger a direction change
     if (newHead.x <= margin || newHead.x >= p.width - margin) {
       direction.x = -Math.abs(direction.x) * Math.sign(p.width / 2 - newHead.x); // Reverse direction on X-axis when near canvas boundary
     }
@@ -153,7 +153,7 @@ export const sampleSketch = (
     p.endShape();
 
     // Draw legs for fewer segments to increase spacing between legs
-    for (let i = 40; i < spinePoints.length; i += 10) {
+    for (let i = 40; i < spinePoints.length; i += 20) {
       drawLegs(spinePoints[i], spinePoints[i - 1], i); // Draw legs for every 30th segment to reduce visual clutter
     }
   };
@@ -172,16 +172,16 @@ export const sampleSketch = (
     for (let side = -1; side <= 1; side += 2) { // Draw legs on both sides of the body
       // Calculate root, joint, and tip based on the given equations for oscillatory leg movement
       const Zroot = p.createVector(
-        center.x + perpendicular.x * side * segmentLength * 1, // Root of the leg relative to the body center
-        center.y + perpendicular.y * side * segmentLength * 1
+        center.x + perpendicular.x * side * segmentLength * 2 * Math.sin(t*0.25) , // Root of the leg relative to the body center
+        center.y + perpendicular.y * side * segmentLength * 2  * Math.cos(t*0.25)
       ) as P5Vector;
       const Zjoint = p.createVector(
-        Zroot.x + perpendicular.x * side * 1 * segmentLength, // Joint position relative to the root, to form articulation
-        Zroot.y + perpendicular.y * side * 1 * segmentLength
+        Zroot.x +  perpendicular.x * Math.sin(t*0.5  + (p.PI*0.25) * index) , // Joint position relative to the root, to form articulation
+        Zroot.y + perpendicular.y  * Math.cos(t*0.5  + (p.PI*0.25) * index)
       ) as P5Vector;
       const Ztip = p.createVector(
-        Zjoint.x + perpendicular.x * side * 1 * segmentLength * Math.sin(t + (p.PI / 3) * index), // Tip position influenced by further oscillation
-        Zjoint.y + perpendicular.y * side * 1 * segmentLength * Math.cos(t + (p.PI / 5) * index)
+        Zjoint.x + perpendicular.x * side * 1.2 * segmentLength* 1.5 * Math.sin(t*0.0007 * index), // Tip position influenced by further oscillation
+        Zjoint.y + perpendicular.y * side * 1.2 * segmentLength* 1.5 * Math.cos(t*0.0003 * index)
       ) as P5Vector;
 
       // Draw central leg segment
@@ -189,6 +189,13 @@ export const sampleSketch = (
       // Draw articulated side segments
       p.line(Zroot.x, Zroot.y, Zjoint.x, Zjoint.y); // Draw line from root to joint
       p.line(Zjoint.x, Zjoint.y, Ztip.x, Ztip.y); // Draw line from joint to tip for complete leg
-    }
+
+      // Draw small circles at each articulation and tip
+      p.fill(255, 255, 255); // Set fill color to white for better visibility
+      //p.noStroke(); // Disable stroke for the circles
+      p.circle(Zroot.x, Zroot.y, 3); // Draw small circle at the root
+      p.circle(Zjoint.x, Zjoint.y, 3); // Draw small circle at the joint
+      p.circle(Ztip.x, Ztip.y, 3); // Draw small circle at the tip
+}
   };
 };
