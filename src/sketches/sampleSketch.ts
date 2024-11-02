@@ -17,261 +17,178 @@ export const sampleSketch = (
   }
 
   // Variables for the centipede animation
-  let pts: P5Vector[] = [];
-  let spinePositions: P5Vector[] = [];
-  let t = 0;
-  const segments = 60;
-  const factor1 = 4;
-  const factor2 = 3;
-  let n: number;
-  let totalTimeSteps: number;
+  let spinePoints: P5Vector[] = []; // Array to store the positions of the centipede's body segments
+  const numSegments = 3000; // Number of segments to control the length of the centipede
+  const segmentLength = 40; // Length of the central segment of each leg
+  let direction: P5Vector = { // Current direction of the centipede
+    x: 1,
+    y: 1,
+    // Copy the current vector to ensure modifications don't affect the original
+    copy() { return { ...this }; }, // Create a new object with the same x and y values to prevent modifying the original vector when adjustments are needed
+    // Calculate the magnitude of the vector (length)
+    mag() { return Math.sqrt(this.x ** 2 + this.y ** 2); }, // Calculate the length of the vector using Pythagoras' theorem to determine how far the vector points in space
+    // Normalize the vector (make its magnitude 1) to keep movement consistent
+    normalize() {
+      const m = this.mag(); // Get the magnitude of the current vector to scale it
+      return {
+        x: this.x / m, // Divide x by magnitude to make the vector unit length (length = 1)
+        y: this.y / m, // Divide y by magnitude to make the vector unit length (length = 1)
+        // Provide new methods for the normalized vector
+        copy() { return { ...this }; }, // Provide a copy method for the normalized vector so it can be cloned independently
+        mag() { return Math.sqrt(this.x ** 2 + this.y ** 2); }, // Provide a magnitude method for the normalized vector so we can calculate its length if needed
+        normalize() { return this; } // Provide a normalize method that returns itself, since it's already normalized
+      };
+    }
+  };
+  const speed = 0.8; // Speed of the centipede's movement
+  let angleOffset = -0.005; // Angle offset used for oscillating movement of the centipede
   let resizeObserver: ResizeObserver;
-
-  // Helper class for B-spline interpolation
-  class BSpline {
-    controlPoints: P5Vector[];
-
-    constructor(controlPoints: P5Vector[]) {
-      this.controlPoints = controlPoints;
-    }
-
-    // De Boor's algorithm for B-spline evaluation
-    getPoint(t: number): P5Vector {
-      const n = this.controlPoints.length - 1;
-      const degree = 3; // Cubic B-spline
-      const knots: number[] = [];
-
-      // Uniform knot vector
-      for (let i = 0; i <= n + degree + 1; i++) {
-        knots.push(i);
-      }
-
-      // Scale t to the knot vector range
-      const tScaled = t * knots[n + degree + 1];
-
-      // Find the knot span
-      let span = -1;
-      for (let i = degree; i <= n; i++) {
-        if (tScaled >= knots[i] && tScaled < knots[i + 1]) {
-          span = i;
-          break;
-        }
-      }
-
-      // If t is at the end, use the last span
-      if (span === -1) {
-        span = n;
-      }
-
-      // Initialize the de Boor points
-      const d: P5Vector[] = [];
-      for (let j = 0; j <= degree; j++) {
-        d[j] = this.controlPoints[span - degree + j].copy();
-      }
-
-      // De Boor recursion
-      for (let r = 1; r <= degree; r++) {
-        for (let j = degree; j >= r; j--) {
-          const i = span - degree + j;
-          const alpha =
-            (tScaled - knots[i]) / (knots[i + degree - r + 1] - knots[i]);
-          d[j] = vectorAdd(
-            vectorMult(d[j - 1], 1 - alpha),
-            vectorMult(d[j], alpha)
-          );
-        }
-      }
-
-      return d[degree];
-    }
-  }
 
   // Initialize the canvas with correct dimensions
   const initializeCanvas = () => {
     const width = parentRef.clientWidth;
     const height = parentRef.clientHeight;
 
-    // Check if the dimensions are greater than zero
     if (width > 0 && height > 0) {
-      // Create the canvas with the same dimensions as the parent and attach it to parentRef
-      console.log("SIZE:::::", width, height);
       p.createCanvas(width, height).parent(parentRef);
-
-      // Initialize any variables or arrays after the canvas is created
-      initializeCentipede();
+      initializeCentipede(); // Initialize the centipede after canvas is set to start drawing
     } else {
-      // If dimensions are zero, wait and retry after a short delay
-      setTimeout(initializeCanvas, 50);
+      setTimeout(initializeCanvas, 50); // Retry if dimensions are not available yet, e.g., if the parent is not fully loaded
     }
   };
 
-  // Initialize centipede parameters and precompute positions
+  // Initialize centipede parameters
   const initializeCentipede = () => {
-    // Define the control points for the spline path
-    pts = [
-      p.createVector(0, 0),
-      p.createVector(100, 100),
-      p.createVector(200, -100),
-      p.createVector(300, 0),
-      p.createVector(400, -200),
-      p.createVector(600, 100),
-      p.createVector(200, 300),
-      p.createVector(200, 0),
-      p.createVector(300, -200),
-      p.createVector(400, -100),
-      p.createVector(500, 200),
-      p.createVector(400, 200),
-      p.createVector(300, 200),
-      p.createVector(100, 100),
-      p.createVector(100, -100),
-    ];
-
-    // Scale the points to fit the canvas
-    for (let i = 0; i < pts.length; i++) {
-      pts[i].x = (pts[i].x / 600) * p.width;
-      pts[i].y = (pts[i].y / 600) * p.height;
+    spinePoints = []; // Clear the current spine points to reset the centipede
+    for (let i = 0; i < numSegments; i++) {
+      spinePoints.push(p.createVector(0, 0) as P5Vector); // Start the centipede from the center of the canvas with all points initialized at (0, 0)
     }
-
-    // Precompute spine positions along the spline
-    n = Math.floor(factor1 * segments);
-    totalTimeSteps = n - segments - 1;
-
-    // Generate positions along the spline
-    generateSpinePositions();
-  };
-
-  // Generate the positions along the spline
-  const generateSpinePositions = () => {
-    spinePositions = [];
-
-    // Create a spline path using the control points
-    const spline = new BSpline(pts);
-
-    // Sample points along the spline
-    const totalPoints = Math.floor(factor1 * factor2 * segments);
-    for (let i = 0; i <= totalPoints; i++) {
-      const t = i / totalPoints;
-      const pos = spline.getPoint(t);
-      spinePositions.push(pos);
-    }
+    direction = p.createVector(1, 0).normalize() as P5Vector; // Set the initial direction of movement to the right
   };
 
   // p5.js setup function
   p.setup = () => {
-    // Delay canvas initialization to ensure parent element dimensions are stable
     setTimeout(() => {
-      initializeCanvas();
+      initializeCanvas(); // Set up the canvas with appropriate dimensions
 
-      // Set up a ResizeObserver on parentRef after canvas is initialized
       resizeObserver = new ResizeObserver(() => {
         const width = parentRef.clientWidth;
         const height = parentRef.clientHeight;
 
-        // Ensure that the canvas dimensions are updated
         if (width > 0 && height > 0) {
-          p.resizeCanvas(width, height);
-          initializeCentipede(); // Reinitialize centipede positions to fit the new size
+          p.resizeCanvas(width, height); // Resize the canvas if the parent changes size
+          initializeCentipede(); // Reinitialize centipede to adjust to the new canvas size
         }
       });
-      resizeObserver.observe(parentRef);
-    }, 100);
+      resizeObserver.observe(parentRef); // Start observing the size of the parent element to adjust the canvas
+    }, 100); // Delay to ensure parent element is ready
   };
 
   // Clean up the observer when the sketch is removed
   p.remove = () => {
     if (resizeObserver) {
-      resizeObserver.disconnect();
+      resizeObserver.disconnect(); // Stop observing when the sketch is removed to avoid memory leaks
     }
   };
 
   // p5.js draw function
   p.draw = () => {
-    // Ensure that the canvas has been created before drawing
-    if (!p.canvas || spinePositions.length < segments) return;
+    if (!p.canvas || spinePoints.length < numSegments) return; // Ensure canvas and spinePoints are properly initialized before drawing
 
-    // Clear the background
-    p.background(0);
+    p.background(0); // Clear the canvas with a black background each frame
 
-    // Draw the centipede
-    drawCentipede();
+    // Update centipede position and direction
+    updateCentipedeDirection();
 
-    // Update time
-    t = (t + 1) % totalTimeSteps;
+    // Draw the centipede body and legs
+    drawCentipedeBody();
   };
 
-  // Function to draw the centipede
-  const drawCentipede = () => {
-    // For each segment
-    for (let L = 1; L < segments - 1; L++) {
-      drawSegment(t, L);
+  // Function to update centipede's direction and move smoothly
+  const updateCentipedeDirection = () => {
+    const head = spinePoints[0]; // Get the current head position of the centipede
+
+    // Calculate new direction based on oscillation, making an infinity shape
+    angleOffset += 0.0009; // Controls how fast the centipede oscillates to create a looping path
+    const offsetX = Math.sin(angleOffset) * (p.width * 0.8); // Determine how much to oscillate in the X-axis
+    const offsetY = Math.cos(2 * angleOffset) * (p.height * 0.8); // Determine how much to oscillate in the Y-axis
+
+    // Update direction vector with oscillation
+    direction.x += offsetX; // Add oscillation to X direction to create dynamic movement
+    direction.y += offsetY; // Add oscillation to Y direction to create dynamic movement
+    direction = direction.normalize(); // Normalize to maintain consistent speed regardless of direction changes
+
+    // Update the head position to move in the new direction
+    const newHead = p.createVector(
+      head.x + direction.x * speed, // Move the head position by speed in the direction of X
+      head.y + direction.y * speed // Move the head position by speed in the direction of Y
+    ) as P5Vector;
+
+    // Check for boundary and adjust direction smoothly when approaching canvas limits
+    const margin = 50; // Margin from edge to trigger a direction change
+    if (newHead.x <= margin || newHead.x >= p.width - margin) {
+      direction.x = -Math.abs(direction.x) * Math.sign(p.width / 2 - newHead.x); // Reverse direction on X-axis when near canvas boundary
+    }
+    if (newHead.y <= margin || newHead.y >= p.height - margin) {
+      direction.y = -Math.abs(direction.y) * Math.sign(p.height / 2 - newHead.y); // Reverse direction on Y-axis when near canvas boundary
+    }
+
+    // Add new head position to the front and remove the last segment to maintain length
+    spinePoints.unshift(newHead); // Add the new head position at the front of the spine
+    if (spinePoints.length > numSegments) {
+      spinePoints.pop(); // Remove the last segment to keep the centipede the same length
     }
   };
 
-  // Function to draw a segment at time 't' and segment index 'L'
-  const drawSegment = (t: number, L: number) => {
-    // Ensure that the segment is drawn by calculating positions
-    const index = t + L;
-    if (index >= spinePositions.length - 1) return;
+  // Function to draw the centipede body and its legs based on given equations
+  const drawCentipedeBody = () => {
+    p.stroke(255); // Set stroke color to white for the centipede body
+    p.strokeWeight(2); // Set thickness of the centipede body lines
+    p.noFill(); // Do not fill the shape, as it's just the outline
+    p.beginShape();
+    for (let i = 0; i < spinePoints.length; i++) {
+      const pos = spinePoints[i];
+      p.curveVertex(pos.x, pos.y); // Draw a smooth curve through each spine point
+    }
+    p.endShape();
 
-    const center = spinePositions[index];
-    const next = spinePositions[index + 1];
-
-    if (!center || !next) return; // Ensure both points are defined
-
-    // Draw the body segment
-    p.stroke(255);
-    p.strokeWeight(2);
-    p.line(center.x, center.y, next.x, next.y);
-
-    // Parameters for leg movement
-    const vector = vectorSub(next, center);
-    const norm = vector.mag();
-    const e2 = vector.copy().normalize();
-    const e1 = p.createVector(-e2.y, e2.x); // Perpendicular vector
-
-    const lambda = 3 * Math.sqrt(1 - Math.pow(L - segments / 2, 2) / Math.pow(segments / 2, 2));
-    const omega = 0.2;
-
-    // Calculate angles for legs
-    const angle1 = ((5 * p.PI) / 180) * Math.sin(omega * t + (p.PI / 6) * L);
-    const angle2 = (((5 + 17) * p.PI) / 180) * Math.sin(omega * t + (p.PI / 6) * L);
-
-    // Directions for legs
-    const dir1 = vectorAdd(vectorMult(e2, norm * lambda * Math.cos(angle1)), vectorMult(e1, norm * lambda * Math.sin(angle1)));
-    const dir2 = vectorAdd(vectorMult(e2, norm * lambda * Math.cos(angle2)), vectorMult(e1, norm * lambda * Math.sin(angle2)));
-
-    // Alternate direction based on segment index L
-    const directionFactor = Math.pow(-1, L);
-
-    // Left leg positions
-    const jointLeft = vectorAdd(center, vectorMult(dir1, directionFactor));
-    const tipLeft = vectorAdd(jointLeft, vectorMult(dir2, directionFactor));
-
-    // Right leg positions
-    const jointRight = vectorAdd(center, vectorMult(dir1, -directionFactor));
-    const tipRight = vectorAdd(jointRight, vectorMult(dir2, -directionFactor));
-
-    // Draw the legs
-    p.strokeWeight(1);
-    p.fill(255);
-    // Left leg
-    p.line(center.x, center.y, jointLeft.x, jointLeft.y);
-    p.line(jointLeft.x, jointLeft.y, tipLeft.x, tipLeft.y);
-    // Right leg
-    p.line(center.x, center.y, jointRight.x, jointRight.y);
-    p.line(jointRight.x, jointRight.y, tipRight.x, tipRight.y);
+    // Draw legs for fewer segments to increase spacing between legs
+    for (let i = 40; i < spinePoints.length; i += 10) {
+      drawLegs(spinePoints[i], spinePoints[i - 1], i); // Draw legs for every 30th segment to reduce visual clutter
+    }
   };
 
-  // Helper functions to perform vector operations without accessing p5.Vector at the module level
-  const vectorAdd = (v1: P5Vector, v2: P5Vector): P5Vector => {
-    return p.createVector(v1.x + v2.x, v1.y + v2.y);
-  };
+  // Function to draw legs for each segment
+  const drawLegs = (center: P5Vector, prev: P5Vector, index: number) => {
+    p.stroke(200); // Set stroke color for the legs (lighter gray)
+    p.strokeWeight(1); // Set leg thickness to be thinner than the body
 
-  const vectorSub = (v1: P5Vector, v2: P5Vector): P5Vector => {
-    return p.createVector(v1.x - v2.x, v1.y - v2.y);
-  };
+    // Calculate the direction vector between the current and previous segment to determine leg orientation
+    const vector = p.createVector(center.x - prev.x, center.y - prev.y).normalize(); // Direction from previous segment to current
+    const perpendicular = p.createVector(-vector.y, vector.x); // Get a vector perpendicular to the body direction to draw legs
 
-  const vectorMult = (v: P5Vector, scalar: number): P5Vector => {
-    return p.createVector(v.x * scalar, v.y * scalar);
+    const t = p.frameCount * 0.01; // Controls the speed of oscillation for leg movement
+
+    for (let side = -1; side <= 1; side += 2) { // Draw legs on both sides of the body
+      // Calculate root, joint, and tip based on the given equations for oscillatory leg movement
+      const Zroot = p.createVector(
+        center.x + perpendicular.x * side * segmentLength * 1, // Root of the leg relative to the body center
+        center.y + perpendicular.y * side * segmentLength * 1
+      ) as P5Vector;
+      const Zjoint = p.createVector(
+        Zroot.x + perpendicular.x * side * 1 * segmentLength, // Joint position relative to the root, to form articulation
+        Zroot.y + perpendicular.y * side * 1 * segmentLength
+      ) as P5Vector;
+      const Ztip = p.createVector(
+        Zjoint.x + perpendicular.x * side * 1 * segmentLength * Math.sin(t + (p.PI / 3) * index), // Tip position influenced by further oscillation
+        Zjoint.y + perpendicular.y * side * 1 * segmentLength * Math.cos(t + (p.PI / 5) * index)
+      ) as P5Vector;
+
+      // Draw central leg segment
+      p.line(center.x, center.y, Zroot.x, Zroot.y); // Draw line from body center to root of the leg
+      // Draw articulated side segments
+      p.line(Zroot.x, Zroot.y, Zjoint.x, Zjoint.y); // Draw line from root to joint
+      p.line(Zjoint.x, Zjoint.y, Ztip.x, Ztip.y); // Draw line from joint to tip for complete leg
+    }
   };
 };
