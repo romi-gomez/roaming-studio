@@ -18,8 +18,8 @@ export const sampleSketch = (
 
   // Array to store the centipede body segments
   let spinePoints: P5Vector[] = [];
-  const numSegments = 5000; // Number of segments that make up the centipede's body. If increased, the length of the centipede will increase.
-  const segmentLength = 30; // Length of each body segment. If increased, the length of each leg and body part will increase.
+  let numSegments = 3000; // Number of segments that make up the centipede's body. If increased, the length of the centipede will increase.
+  let segmentLength = 40; // Length of each body segment. If increased, the length of each leg and body part will increase.
 
   // Direction vector to represent the current movement direction of the centipede
   let direction: P5Vector = {
@@ -41,9 +41,10 @@ export const sampleSketch = (
 
   // Target direction vector that updates whenever a user clicks
   let targetDirection: P5Vector = direction.copy();
-  const speed = 0.9; // Speed of the centipede movement. If increased, the centipede will move faster.
-  const amplitude = 1.2; // Amplitude of the subtle sinusoidal oscillation. If increased, the side-to-side movement will become more pronounced.
-  const frequency = 0.01; // Frequency of the sinusoidal oscillation. If increased, the oscillation will happen more quickly.
+  let speed = 0.5; // Speed of the centipede movement. If increased, the centipede will move faster.
+  let amplitude = 0.8; // Amplitude of the subtle sinusoidal oscillation. If increased, the side-to-side movement will become more pronounced.
+  let frequency = 0.01; // Frequency of the sinusoidal oscillation. If increased, the oscillation will happen more quickly.
+  let legSpacing = 15; // Spacing between legs
 
   let resizeObserver: ResizeObserver; // Observer to handle resizing of the canvas when the parent element changes size
 
@@ -125,7 +126,11 @@ let circleColor: P5Color;
   p.draw = () => {
     if (!p.canvas || spinePoints.length < numSegments) return;
 
-    p.background(0, 60); // Set the background to black with opacity
+    p.background(0, 50); // Set the background to black with opacity
+
+    if (!p.canvas || spinePoints.length < numSegments) return;
+
+    p.background(0, 50); // Set the background to black with opacity
     updateCentipedeDirection(); // Update centipede's direction based on target direction
     drawCentipedeBody(); // Draw the body of the centipede
     drawCircle(); // Draw the random circle
@@ -135,6 +140,22 @@ let circleColor: P5Color;
     if (shrinking) {
       shrinkCircle(); // Shrink the circle until it disappears
     }
+
+    // Display parameter values at the bottom of the screen
+    p.fill(0,190);
+    p.rect(0, p.height-30, p.width, p.height);
+    p.fill(255);
+    p.textSize(12);
+    p.textAlign(p.LEFT);
+    p.text(
+      `frequency: ${frequency.toFixed(3)} [ + F ][ - f ]  ` +
+      `amplitude: ${amplitude.toFixed(1)} [ + A ][ - a ]  ` +
+      `segmentLength: ${segmentLength} [ + S ][ - s ] ` +
+      `legSpacing: ${legSpacing} [ + L ][ - l  ]  ` +
+      `speed: ${speed.toFixed(1)} [ + V ][ - v ]  ` +
+      `numSegments: ${numSegments} [ + N ][ - n ]   `,
+      10, p.height - 10
+    );
   };
 
   // p5.js function called when the mouse is pressed
@@ -144,6 +165,48 @@ let circleColor: P5Color;
 
     // Update the direction to head towards the point clicked by the user
     targetDirection = p.createVector(mouseVector.x - head.x, mouseVector.y - head.y).normalize() as P5Vector;
+  };
+
+  // p5.js function called when a key is pressed to interactively adjust parameters
+  p.keyPressed = () => {
+    switch (p.key) {
+      case 'n':
+        numSegments = Math.max(100, numSegments - 100);
+        break;
+      case 'N':
+        numSegments += 100;
+        break;
+      case 'f':
+        frequency = Math.max(0.001, frequency - 0.001);
+        break;
+      case 'F':
+        frequency += 0.001;
+        break;
+      case 'a':
+        amplitude = Math.max(0.1, amplitude - 0.1);
+        break;
+      case 'A':
+        amplitude += 0.1;
+        break;
+      case 's':
+        segmentLength = Math.max(1, segmentLength - 1);
+        break;
+      case 'S':
+        segmentLength += 1;
+        break;
+      case 'l':
+        legSpacing = Math.max(1, legSpacing - 1);
+        break;
+      case 'L':
+        legSpacing += 1;
+        break;
+      case 'v':
+        speed = Math.max(0.1, speed - 0.1);
+        break;
+      case 'V':
+        speed += 0.1;
+        break;
+    }
   };
 
   // Function to update the direction of the centipede towards the target
@@ -186,7 +249,7 @@ let circleColor: P5Color;
     p.endShape();
 
     // Draw legs for certain segments to create a more realistic centipede appearance
-    for (let i = 40; i < spinePoints.length; i += 10) { // Increasing this value increases spacing between legs
+    for (let i = 40; i < spinePoints.length; i += legSpacing) { // Use adjustable leg spacing
       drawLegs(spinePoints[i], spinePoints[i - 1], i);
     }
   };
@@ -221,7 +284,7 @@ let circleColor: P5Color;
   // Function to draw the legs of the centipede
   const drawLegs = (center: P5Vector, prev: P5Vector, index: number) => {
     p.stroke(centipedeColor); // Set stroke color for the legs to match the centipede body
-    p.strokeWeight(0.25); // Set leg thickness to be thinner than the body
+    p.strokeWeight(1); // Set leg thickness to be thinner than the body
 
     // Calculate the vector between the current and previous segment to determine orientation
     const vector = p.createVector(center.x - prev.x, center.y - prev.y).normalize();
@@ -236,12 +299,12 @@ let circleColor: P5Color;
         center.y + perpendicular.y * side * segmentLength * 2 * Math.cos(t * 0.25)
       ) as P5Vector;
       const Zjoint = p.createVector(
-        Zroot.x + perpendicular.x * Math.sin(t * 0.5 + (p.PI * 0.025) * index),
-        Zroot.y + perpendicular.y * Math.cos(t * 0.5 + (p.PI * 0.025) * index)
+        Zroot.x + perpendicular.x * Math.sin(t * 0.5 + (p.PI * 0.25) * index),
+        Zroot.y + perpendicular.y * Math.cos(t * 0.5 + (p.PI * 0.25) * index)
       ) as P5Vector;
       const Ztip = p.createVector(
-        Zjoint.x + perpendicular.x * side * 1.2 * segmentLength * 1.5 * Math.sin(t * 0.0005 * index),
-        Zjoint.y + perpendicular.y * side * 1.2 * segmentLength * 1.5 * Math.cos(t * 0.0009 * index)
+        Zjoint.x + perpendicular.x * side * 1.2 * segmentLength * 2 * Math.sin(t * 0.0001 * index),
+        Zjoint.y + perpendicular.y * side * 1.2 * segmentLength * 2 * Math.cos(t * 0.0005 * index)
       ) as P5Vector;
 
       // Draw the segments of the leg
@@ -250,7 +313,7 @@ let circleColor: P5Color;
       p.line(Zjoint.x, Zjoint.y, Ztip.x, Ztip.y); // Line from joint to tip of the leg
 
       // Draw small circles at each articulation and tip for better visibility
-      p.fill(centipedeColor); // Set fill color to centripedeColour
+      p.fill(255, 255, 255); // Set fill color to white
       p.circle(Zroot.x, Zroot.y, 3); // Circle at root
       p.circle(Zjoint.x, Zjoint.y, 3); // Circle at joint
       p.circle(Ztip.x, Ztip.y, 3); // Circle at tip
