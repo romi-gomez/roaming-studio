@@ -40,5 +40,5 @@ export const SketchContainer: React.FC<{ sketch: Sketch }> = ({ sketch }) => {
   }, [isMounted, sketch]);
 
   // Render a div to attach the p5 canvas to
-  return <div ref={parentRef} className="flex-grow w-full h-full bg-emerald-300" />;
+  return <div ref={parentRef} className="flex-grow w-full h-full" />;
 };

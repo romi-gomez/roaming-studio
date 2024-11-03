@@ -18,8 +18,8 @@ export const sampleSketch = (
 
   // Array to store the centipede body segments
   let spinePoints: P5Vector[] = [];
-  const numSegments = 3000; // Number of segments that make up the centipede's body. If increased, the length of the centipede will increase.
-  const segmentLength = 40; // Length of each body segment. If increased, the length of each leg and body part will increase.
+  const numSegments = 5000; // Number of segments that make up the centipede's body. If increased, the length of the centipede will increase.
+  const segmentLength = 30; // Length of each body segment. If increased, the length of each leg and body part will increase.
 
   // Direction vector to represent the current movement direction of the centipede
   let direction: P5Vector = {
@@ -41,11 +41,22 @@ export const sampleSketch = (
 
   // Target direction vector that updates whenever a user clicks
   let targetDirection: P5Vector = direction.copy();
-  const speed = 0.5; // Speed of the centipede movement. If increased, the centipede will move faster.
-  const amplitude = 0.8; // Amplitude of the subtle sinusoidal oscillation. If increased, the side-to-side movement will become more pronounced.
+  const speed = 0.9; // Speed of the centipede movement. If increased, the centipede will move faster.
+  const amplitude = 1.2; // Amplitude of the subtle sinusoidal oscillation. If increased, the side-to-side movement will become more pronounced.
   const frequency = 0.01; // Frequency of the sinusoidal oscillation. If increased, the oscillation will happen more quickly.
 
   let resizeObserver: ResizeObserver; // Observer to handle resizing of the canvas when the parent element changes size
+
+  // New interaction variables
+  let circlePosition: P5Vector; // Position of the random circle
+  let circleRadius: number; // Radius of the random circle
+  interface P5Color {
+    toString(): string;
+}
+
+let circleColor: P5Color;
+  let centipedeColor: P5Color; // Initial color of the centipede
+  let shrinking = false; // Flag to indicate shrinking of the circle
 
   // Initializes the canvas based on the dimensions of the parent div element
   const initializeCanvas = () => {
@@ -55,6 +66,7 @@ export const sampleSketch = (
     if (width > 0 && height > 0) {
       p.createCanvas(width, height).parent(parentRef);
       initializeCentipede();
+      initializeCircle(); // Initialize the random circle position
     } else {
       setTimeout(initializeCanvas, 50); // Retry initializing if dimensions are not available yet
     }
@@ -70,6 +82,16 @@ export const sampleSketch = (
     }
     direction = p.createVector(1, 0).normalize() as P5Vector; // Initial direction is to the right
     targetDirection = direction.copy();
+    centipedeColor = p.color(255) as P5Color; // Reset centipede color to white
+  };
+
+  // Initializes the random circle position
+  const initializeCircle = () => {
+    const width = p.width;
+    const height = p.height;
+    circleRadius = p.random(20, 100); // Random radius between 20 and 100
+    circlePosition = p.createVector(p.random(circleRadius, width - circleRadius), p.random(circleRadius, height - circleRadius)) as P5Vector;
+    circleColor = p.color(p.random(255), p.random(255), p.random(255)) as P5Color; // Random color for the circle
   };
 
   // p5.js setup function to initialize the canvas and observer
@@ -85,6 +107,7 @@ export const sampleSketch = (
         if (width > 0 && height > 0) {
           p.resizeCanvas(width, height);
           initializeCentipede(); // Reinitialize centipede to adjust to new canvas size
+          initializeCircle(); // Reinitialize circle position to adjust to new canvas size
         }
       });
       resizeObserver.observe(parentRef);
@@ -102,9 +125,16 @@ export const sampleSketch = (
   p.draw = () => {
     if (!p.canvas || spinePoints.length < numSegments) return;
 
-    p.background(0); // Set the background to black
+    p.background(0, 60); // Set the background to black with opacity
     updateCentipedeDirection(); // Update centipede's direction based on target direction
     drawCentipedeBody(); // Draw the body of the centipede
+    drawCircle(); // Draw the random circle
+
+    checkCircleCollision(); // Check if the head of the centipede touches the circle
+
+    if (shrinking) {
+      shrinkCircle(); // Shrink the circle until it disappears
+    }
   };
 
   // p5.js function called when the mouse is pressed
@@ -145,7 +175,7 @@ export const sampleSketch = (
 
   // Function to draw the centipede's body
   const drawCentipedeBody = () => {
-    p.stroke(255); // Set stroke color to white for the centipede body
+    p.stroke(centipedeColor); // Set stroke color for the centipede body
     p.strokeWeight(2); // Set thickness of the centipede body line
     p.noFill(); // Do not fill the body shape
     p.beginShape();
@@ -156,15 +186,42 @@ export const sampleSketch = (
     p.endShape();
 
     // Draw legs for certain segments to create a more realistic centipede appearance
-    for (let i = 40; i < spinePoints.length; i += 15) { // Increasing this value increases spacing between legs
+    for (let i = 40; i < spinePoints.length; i += 10) { // Increasing this value increases spacing between legs
       drawLegs(spinePoints[i], spinePoints[i - 1], i);
+    }
+  };
+
+  // Function to draw the random circle
+  const drawCircle = () => {
+    p.fill(circleColor);
+    p.noStroke();
+    p.circle(circlePosition.x, circlePosition.y, circleRadius * 2);
+  };
+
+  // Function to check if the centipede head touches the circle
+  const checkCircleCollision = () => {
+    const head = spinePoints[0];
+    const distance = p.dist(head.x, head.y, circlePosition.x, circlePosition.y);
+    if (distance < circleRadius) {
+      centipedeColor = circleColor; // Change centipede color to the circle color
+      shrinking = true; // Start shrinking the circle
+    }
+  };
+
+  // Function to shrink the circle until it disappears
+  const shrinkCircle = () => {
+    if (circleRadius > 0) {
+      circleRadius -= 1; // Decrease the radius gradually
+    } else {
+      shrinking = false; // Stop shrinking
+      initializeCircle(); // Initialize a new circle after shrinking is complete
     }
   };
 
   // Function to draw the legs of the centipede
   const drawLegs = (center: P5Vector, prev: P5Vector, index: number) => {
-    p.stroke(200); // Set stroke color to light gray for the legs
-    p.strokeWeight(1); // Set leg thickness to be thinner than the body
+    p.stroke(centipedeColor); // Set stroke color for the legs to match the centipede body
+    p.strokeWeight(0.25); // Set leg thickness to be thinner than the body
 
     // Calculate the vector between the current and previous segment to determine orientation
     const vector = p.createVector(center.x - prev.x, center.y - prev.y).normalize();
@@ -179,12 +236,12 @@ export const sampleSketch = (
         center.y + perpendicular.y * side * segmentLength * 2 * Math.cos(t * 0.25)
       ) as P5Vector;
       const Zjoint = p.createVector(
-        Zroot.x + perpendicular.x * Math.sin(t * 0.5 + (p.PI * 0.25) * index),
-        Zroot.y + perpendicular.y * Math.cos(t * 0.5 + (p.PI * 0.25) * index)
+        Zroot.x + perpendicular.x * Math.sin(t * 0.5 + (p.PI * 0.025) * index),
+        Zroot.y + perpendicular.y * Math.cos(t * 0.5 + (p.PI * 0.025) * index)
       ) as P5Vector;
       const Ztip = p.createVector(
-        Zjoint.x + perpendicular.x * side * 1.2 * segmentLength * 2 * Math.sin(t * 0.0001 * index),
-        Zjoint.y + perpendicular.y * side * 1.2 * segmentLength * 2 * Math.cos(t * 0.0005 * index)
+        Zjoint.x + perpendicular.x * side * 1.2 * segmentLength * 1.5 * Math.sin(t * 0.0005 * index),
+        Zjoint.y + perpendicular.y * side * 1.2 * segmentLength * 1.5 * Math.cos(t * 0.0009 * index)
       ) as P5Vector;
 
       // Draw the segments of the leg
@@ -193,7 +250,7 @@ export const sampleSketch = (
       p.line(Zjoint.x, Zjoint.y, Ztip.x, Ztip.y); // Line from joint to tip of the leg
 
       // Draw small circles at each articulation and tip for better visibility
-      p.fill(255, 255, 255); // Set fill color to white
+      p.fill(centipedeColor); // Set fill color to centripedeColour
       p.circle(Zroot.x, Zroot.y, 3); // Circle at root
       p.circle(Zjoint.x, Zjoint.y, 3); // Circle at joint
       p.circle(Ztip.x, Ztip.y, 3); // Circle at tip

@@ -10,7 +10,7 @@ import { sampleSketch } from "@/sketches/sampleSketch";
 
 export default function ClientSketchWrapper() {
   return (
-    <div className="flex flex-col justify-center items-center flex-grow w-full h-full bg-pink-500">
+    <div className="flex flex-col justify-center items-center flex-grow w-full h-full">
       <SketchContainer sketch={sampleSketch} />
     </div>
   );
