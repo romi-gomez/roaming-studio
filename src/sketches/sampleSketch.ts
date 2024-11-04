@@ -148,12 +148,11 @@ let circleColor: P5Color;
     p.textSize(12);
     p.textAlign(p.LEFT);
     p.text(
-      `frequency: ${frequency.toFixed(3)} [ + F ][ - f ]  ` +
-      `amplitude: ${amplitude.toFixed(1)} [ + A ][ - a ]  ` +
-      `segmentLength: ${segmentLength} [ + S ][ - s ] ` +
-      `legSpacing: ${legSpacing} [ + L ][ - l  ]  ` +
-      `speed: ${speed.toFixed(1)} [ + V ][ - v ]  ` +
-      `numSegments: ${numSegments} [ + N ][ - n ]   `,
+      `Movement Frequency: ${frequency.toFixed(4)} [ + F ][ - f ]  ` +
+      `Movement Amplitude: ${amplitude.toFixed(4)} [ + A ][ - a ]  ` +
+      `Legs Width: ${segmentLength} [ + S ][ - s ] ` +
+      `leg Spacing: ${legSpacing} [ + L ][ - l  ]  ` +
+      `Speed: ${speed.toFixed(3)} [ + V ][ - v ]  `,
       10, p.height - 10
     );
   };
@@ -313,7 +312,7 @@ let circleColor: P5Color;
       p.line(Zjoint.x, Zjoint.y, Ztip.x, Ztip.y); // Line from joint to tip of the leg
 
       // Draw small circles at each articulation and tip for better visibility
-      p.fill(255, 255, 255); // Set fill color to white
+      p.fill(centipedeColor); // Set fill color to segmenColor
       p.circle(Zroot.x, Zroot.y, 3); // Circle at root
       p.circle(Zjoint.x, Zjoint.y, 3); // Circle at joint
       p.circle(Ztip.x, Ztip.y, 3); // Circle at tip
